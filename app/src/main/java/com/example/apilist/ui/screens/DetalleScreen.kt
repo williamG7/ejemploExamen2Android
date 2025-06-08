@@ -106,8 +106,7 @@ fun DetailScreen(navigateBack: () -> Unit, characterName: String ) {
 
             // Detalles
             character?.let {
-                DetailItem("Especie", it.species ?: "Desconocida")
-                DetailItem("Planeta natal", it.homeworld ?: "Desconocido")
+                DetailItem("Nombre", it.name)
                 DetailItem("Descripción", it.description)
             }
 
