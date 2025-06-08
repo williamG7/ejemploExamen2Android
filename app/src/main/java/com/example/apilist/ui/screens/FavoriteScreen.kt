@@ -26,76 +26,66 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.apilist.data.database.CharacterEntity
 import com.example.apilist.viewmodel.APIviewmodel
 import androidx.compose.runtime.setValue
 
-
 @Composable
 fun FavoritesScreen(
     navigateToDetail: (String) -> Unit,
-    myViewModel: APIviewmodel
+    viewModel: APIviewmodel
 ) {
-    val characters by myViewModel.favorites.observeAsState(emptyList())
-    val showLoading: Boolean by myViewModel.loading.observeAsState(true)
-
+    // Estado observables
+    val favorites by viewModel.favorites.observeAsState(emptyList())
+    val loading by viewModel.loading.observeAsState(true)
     var searchText by remember { mutableStateOf("") }
 
-
-    //Actualiza la lista de favoritos al entrar en la pantalla
+    // Cargar favoritos al iniciar
     LaunchedEffect(Unit) {
-        myViewModel.getFavorites()
+        viewModel.getFavorites()
     }
 
-    if (showLoading) {
-        Row(
+    if (loading) {
+        Box(
             modifier = Modifier.fillMaxSize(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
+            contentAlignment = Alignment.Center
         ) {
-            CircularProgressIndicator(
-                color = MaterialTheme.colorScheme.secondary
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.secondary)
+        }
+    } else if (favorites.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "No hay personajes favoritos",
+                style = MaterialTheme.typography.bodyLarge
             )
         }
     } else {
-        //Si no hay favoritos, muestra un mensaje
-        if (characters.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No hay favoritos",
-                    textAlign = TextAlign.Center
-                )
-            }
-            //Si hay favoritos, muestra la lista
-        } else {
-            Column(modifier = Modifier.fillMaxSize()) {
-                //TextField para buscar personajes
-                TextField(
-                    value = searchText,
-                    onValueChange = { searchText = it },
-                    label = { Text("Buscar Personaje") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .padding(top = 15.dp)
-                )
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Barra de búsqueda
+            TextField(
+                value = searchText,
+                onValueChange = { searchText = it },
+                label = { Text("Buscar favoritos") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            )
 
-                // Lista de personajes favoritos filtrados
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(bottom = 20.dp)
-                ) {
-                    items(characters.filter { it.name.contains(searchText) }) { character ->
-                        CharacterItem(character) {
-                            navigateToDetail(character.url)
-                        }
+            // Lista de favoritos
+            LazyColumn(modifier = Modifier.padding(horizontal = 16.dp)) {
+                items(
+                    favorites.filter {
+                        it.name.contains(searchText, ignoreCase = true)
                     }
+                ) { character ->
+                    FavoriteCharacterItem(
+                        character = character,
+                        onClick = { navigateToDetail(character.name) }
+                    )
                 }
             }
         }
@@ -103,24 +93,26 @@ fun FavoritesScreen(
 }
 
 @Composable
-fun CharacterItem(character: CharacterEntity, onClick: () -> Unit) {
+fun FavoriteCharacterItem(
+    character: CharacterEntity,
+    onClick: () -> Unit
+) {
     Card(
-        border = BorderStroke(2.dp, Color.LightGray),
-        shape = RoundedCornerShape(8.dp),
+        onClick = onClick,
         modifier = Modifier
-            .padding(8.dp)
-            .clickable { onClick() }
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(1.dp, Color.LightGray)
     ) {
         Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth()
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = character.name,
                 style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.weight(1f)
             )
         }
     }

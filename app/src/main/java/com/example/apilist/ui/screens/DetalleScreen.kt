@@ -1,6 +1,5 @@
 package com.example.apilist.ui.screens
 
-import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -19,6 +18,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
@@ -27,112 +27,110 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
-import com.example.apilist.data.network.SettingsRepository
 import com.example.apilist.viewmodel.APIviewmodel
-import com.example.apilist.viewmodel.MyViewModelFactory
 
 @Composable
-fun DetalleScreen(characterUrl: String, navigateBack: () -> Unit) {
-    val myViewModel: APIviewmodel = viewModel(
-        factory = MyViewModelFactory(SettingsRepository(LocalContext.current))
-    )
-
-    val actualCharacter by myViewModel.actualCharacter.observeAsState()
-    val showLoading: Boolean by myViewModel.loading.observeAsState(true)
-    val isFavorite: Boolean by myViewModel.isFavorite.observeAsState(false)
-    val showToast: Boolean by myViewModel.showToast.observeAsState(false)
+fun DetailScreen(navigateBack: () -> Unit, characterName: String ) {
+    val viewModel: APIviewmodel = viewModel()
+    val character by viewModel.characterDetail.observeAsState()
+    val loading by viewModel.loading.observeAsState(true)
+    val isFavorite by viewModel.isFavorite.observeAsState(false)
     val context = LocalContext.current
 
-    if (showLoading) {
-        myViewModel.getCharacter(characterUrl)
+    // Cargar detalles del personaje al iniciar
+    LaunchedEffect(characterName) {
+        viewModel.getCharacterByName(characterName)
+    }
 
+    if (loading) {
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center // Center the loading indicator
+            verticalArrangement = Arrangement.Center
         ) {
-            CircularProgressIndicator(
-                color = MaterialTheme.colorScheme.secondary
-            )
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.secondary)
+        }
+    } else if (character == null) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text("Personaje no encontrado")
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = navigateBack) {
+                Text("Volver")
+            }
         }
     } else {
-        actualCharacter?.let { character ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center // Center the content
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Botón de favorito
+            IconButton(
+                onClick = { viewModel.toggleFavorite() },
+                modifier = Modifier.align(Alignment.End)
             ) {
-                // Botón de favorito
-                IconButton(onClick = { myViewModel.saveFavorite() }) {
-                    Icon(
-                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = "Favorito",
-                        tint = if (isFavorite) MaterialTheme.colorScheme.primary else Color.Gray,
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Imagen del personaje
-                Image(
-                    painter = rememberAsyncImagePainter(character.image),
-                    contentDescription = "Imagen de ${character.name}",
-                    modifier = Modifier
-                        .size(180.dp)
-                        .align(Alignment.CenterHorizontally)
+                Icon(
+                    imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = "Favorito",
+                    tint = if (isFavorite) Color.Red else Color.Gray,
+                    modifier = Modifier.size(32.dp)
                 )
+            }
 
-                Spacer(modifier = Modifier.height(24.dp))
+            // Imagen del personaje
+            Image(
+                painter = rememberAsyncImagePainter(character?.imageUrl),
+                contentDescription = "Imagen de ${character?.name}",
+                modifier = Modifier
+                    .size(180.dp)
+                    .padding(8.dp)
+            )
 
-                // Nombre
-                Text(
-                    text = character.name,
-                    style = MaterialTheme.typography.headlineMedium,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.primary
-                )
+            Spacer(modifier = Modifier.height(16.dp))
 
-                Spacer(modifier = Modifier.height(12.dp))
+            // Nombre
+            Text(
+                text = character?.name ?: "",
+                style = MaterialTheme.typography.headlineMedium,
+                textAlign = TextAlign.Center
+            )
 
-                //Estado
-                DetalleText(letra = "Estado", valor = character.status)
+            Spacer(modifier = Modifier.height(24.dp))
 
-                // Especie
-                DetalleText(letra = "Especie", valor = character.species)
+            // Detalles
+            character?.let {
+                DetailItem("Especie", it.species ?: "Desconocida")
+                DetailItem("Planeta natal", it.homeworld ?: "Desconocido")
+                DetailItem("Descripción", it.description)
+            }
 
-                //Vivo o muerto
-                val sigueVivo = if (character.status.lowercase() == "alive") "Sí" else "No"
-                DetalleText(letra = "¿Sigue vivo?", valor = sigueVivo)
+            Spacer(modifier = Modifier.height(32.dp))
 
-                Spacer(modifier = Modifier.height(32.dp))
-
-                Button(onClick = navigateBack) {
-                    Text("Volver", style = MaterialTheme.typography.labelLarge)
-                }
+            Button(onClick = navigateBack) {
+                Text("Volver a la lista")
             }
         }
     }
-
-    if (showToast) {
-        Toast.makeText(context, myViewModel.getToastMessage(), Toast.LENGTH_SHORT).show()
-    }
 }
-//Funcion de detalles de textos
+
 @Composable
-fun DetalleText(letra: String, valor: String) {
-    Text(
-        text = "$letra: $valor",
-        style = MaterialTheme.typography.bodyLarge.copy(
-            fontSize = 20.sp
-        ),
-        textAlign = TextAlign.Center,
-        color = MaterialTheme.colorScheme.onBackground,
-        modifier = Modifier.padding(vertical = 4.dp)
-    )
+fun DetailItem(label: String, value: String) {
+    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyLarge
+        )
+    }
 }

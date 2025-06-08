@@ -4,166 +4,174 @@ import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.apilist.data.database.CharacterEntity
-import com.example.apilist.data.model.Data
-import com.example.apilist.data.model.Result
+import com.example.apilist.data.model.Character
 import com.example.apilist.data.network.Repository
-import com.example.apilist.data.network.SettingsRepository
-import com.example.apilist.ui.Utils.getIdFromUrl
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class APIviewmodel(repository1: SettingsRepository) : ViewModel() {
+class APIviewmodel(private val repository1: Repository) : ViewModel() {
 
-    private val repositorio = repository1
-
-    private val repository = Repository()
-
+    // LiveData para el estado de carga
     private val _loading = MutableLiveData(true)
-    val loading = _loading
+    val loading: LiveData<Boolean> = _loading
 
-    private val _characters = MutableLiveData<Data>()
-    val characters = _characters
+    // LiveData para la lista de personajes
+    private val _characters = MutableLiveData<List<Character>>()
+    val characters: LiveData<List<Character>> = _characters
 
-    private val _favorites = MutableLiveData<MutableList<CharacterEntity>>()
-    val favorites = _favorites
+    // LiveData para los favoritos
+    private val _favorites = MutableLiveData<List<CharacterEntity>>()
+    val favorites: LiveData<List<CharacterEntity>> = _favorites
 
-    private val _actualCharacter = MutableLiveData<Result>()
-    val actualCharacter = _actualCharacter
+    // LiveData para el personaje actual (detalle)
+    private val _characterDetail = MutableLiveData<Character?>()
+    val characterDetail: LiveData<Character?> = _characterDetail
 
+    // LiveData para el estado de favorito
     private val _isFavorite = MutableLiveData(false)
-    val isFavorite = _isFavorite
+    val isFavorite: LiveData<Boolean> = _isFavorite
 
-    private val _viewMode = MutableLiveData<String>("List") //Estado inicial
-    val viewMode = _viewMode
+    // LiveData para el modo de vista (Lista/Grid)
+    private val _viewMode = MutableLiveData<String>("List")
+    val viewMode: LiveData<String> = _viewMode
 
+    // LiveData para mostrar toast
     private val _showToast = MutableLiveData(false)
-    val showToast = _showToast
+    val showToast: LiveData<Boolean> = _showToast
     private var toastMessage = ""
 
+    // LiveData para el tema oscuro
     private val _isDarkTheme = MutableLiveData(false)
     val isDarkTheme: LiveData<Boolean> = _isDarkTheme
 
-    //Inicializa el valor de viewMode y isDarkTheme desde SharedPreferences
     init {
-        _viewMode.value = repositorio.getSettingValue("viewMode", "List")
-        _isDarkTheme.value = repositorio.getSettingValue("isDarkTheme", false)
+        // Inicializar valores por defecto
+        _viewMode.value = "List"
+        _isDarkTheme.value = false
     }
 
-    //Funcion para cambiar de list a grid
+    // Función para cambiar entre lista y grid
     fun setViewMode(mode: String) {
-        viewMode.value = mode
-        repositorio.saveSettingValue("viewMode", mode)
+        _viewMode.value = mode
     }
 
-    //Funcion para cambiar el tema
+    // Función para cambiar el tema
     fun onToggleTheme(isDark: Boolean) {
         _isDarkTheme.value = isDark
-        repositorio.saveSettingValue("isDarkTheme", isDark)
     }
 
+    // Función para obtener todos los personajes (Star Wars)
     fun getCharacters() {
-        viewModelScope.launch(Dispatchers.IO) {
-            val response = repository.getAllCharacters()
-            withContext(Dispatchers.Main) {
-                if (response.isSuccessful) {
-                    _characters.value = response.body()
-                    _loading.value = false
-                } else {
-                    Log.e("Error:", response.message())
-                }
-            }
-        }
-    }
-
-    fun getCharacter(characterUrl: String) {
-        val endPoint = characterUrl.removePrefix("https://rickandmortyapi.com/api/")
         viewModelScope.launch {
-            _loading.value = true
-            val response = withContext(Dispatchers.IO) {
-                repository.getCharacter(endPoint)
-            }
-            if (response.isSuccessful) {
-                val character = response.body()
-                _actualCharacter.value = character!!
-                val characterId = getIdFromUrl(_actualCharacter.value!!.url, "/")
-                val favorite = withContext(Dispatchers.IO) {
-                    repository.isFavorite(characterId.toInt())
+            try {
+                _loading.value = true
+                val response = withContext(Dispatchers.IO) {
+                    repository1.getAllCharacters()
                 }
-                Log.d("ES FAVORITO?", favorite.toString())
-                if (favorite == null) {
-                    _isFavorite.value = false
-                } else {
-                    _isFavorite.value = true
-                }
-            } else {
-                Log.e("Error:", response.message())
-            }
-            _loading.value = false
-        }
-    }
-
-    fun getFavorites() {
-        viewModelScope.launch(Dispatchers.IO) {
-            val response = repository.getFavorites()
-            withContext(Dispatchers.Main) {
-                _favorites.value = response
+                _characters.value = response
+                _loading.value = false
+            } catch (e: Exception) {
+                Log.e("APIviewmodel", "Error fetching characters", e)
                 _loading.value = false
             }
         }
     }
 
-    fun saveFavorite() {
-        viewModelScope.launch(Dispatchers.IO) {
-            val character = _actualCharacter.value
-            if (character != null) {
-                val characterId = getIdFromUrl(character.url, "/")
-                val fav = repository.isFavorite(characterId)
-                if (fav == null) {
-                    repository.saveAsFavorite(
-                        CharacterEntity(
-                            id = characterId,
-                            created = character.created,
-                            episode = character.episode,
-                            gender = character.gender,
-                            image = character.image,
-                            name = character.name,
-                            species = character.species,
-                            status = character.status,
-                            type = character.type,
-                            url = character.url
-                        )
-                    )
-                    withContext(Dispatchers.Main) {
-                        toastMessage = "Añadir a favoritos"
-                        _showToast.value = true
-                        _isFavorite.value = true
-                    }
-                } else {
-                    repository.deleteFavorite(fav)
-                    withContext(Dispatchers.Main) {
-                        toastMessage = "Eliminar de favoritos"
-                        _showToast.value = true
-                        _isFavorite.value = false
-                    }
+    // Función para obtener un personaje por nombre (Star Wars)
+    fun getCharacterByName(name: String) {
+        viewModelScope.launch {
+            try {
+                _loading.value = true
+                val character = withContext(Dispatchers.IO) {
+                    repository1.getCharacterByName(name)
                 }
+                _characterDetail.value = character
+
+                character?.id?.let { id ->
+                    val isFav = withContext(Dispatchers.IO) {
+                        repository1.isFavorite(id)
+                    }
+                    _isFavorite.value = (isFav != null)
+                }
+
+                _loading.value = false
+            } catch (e: Exception) {
+                Log.e("APIviewmodel", "Error fetching character", e)
+                _loading.value = false
+            }
+        }
+    }
+
+    // Función para obtener favoritos
+    fun getFavorites() {
+        viewModelScope.launch {
+            try {
+                _loading.value = true
+                val favs = withContext(Dispatchers.IO) {
+                    repository1.getFavorites()
+                }
+                _favorites.value = favs
+                _loading.value = false
+            } catch (e: Exception) {
+                Log.e("APIviewmodel", "Error fetching favorites", e)
+                _loading.value = false
+            }
+        }
+    }
+
+    // Función para alternar favorito
+    fun toggleFavorite() {
+        viewModelScope.launch {
+            try {
+                val character = _characterDetail.value ?: return@launch
+                val characterEntity = CharacterEntity(
+                    id = character.id,
+                    name = character.name,
+                    description = character.description,
+                    imageUrl = character.imageUrl
+                )
+
+                if (_isFavorite.value == true) {
+                    withContext(Dispatchers.IO) {
+                        repository1.deleteFavorite(characterEntity)
+                    }
+                    toastMessage = "Eliminado de favoritos"
+                } else {
+                    withContext(Dispatchers.IO) {
+                        repository1.saveAsFavorite(characterEntity)
+                    }
+                    toastMessage = "Añadido a favoritos"
+                }
+
+                _isFavorite.value = !_isFavorite.value!!
+                _showToast.value = true
+            } catch (e: Exception) {
+                Log.e("APIviewmodel", "Error toggling favorite", e)
+                toastMessage = "Error al actualizar favoritos"
+                _showToast.value = true
             }
         }
         _showToast.value = false
     }
 
+    // Función para eliminar todos los favoritos
     fun deleteAllFavorites() {
-        viewModelScope.launch(Dispatchers.IO) {
-            repository.deleteAllFavorites()
-            withContext(Dispatchers.Main) {
-                _favorites.value = mutableListOf() //Deja la lista de favoritos vacia
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    repository1.deleteAllFavorites()
+                }
+                _favorites.value = emptyList()
+            } catch (e: Exception) {
+                Log.e("APIviewmodel", "Error deleting all favorites", e)
             }
         }
     }
 
+    // Función para obtener el mensaje del toast
     fun getToastMessage(): String {
         return toastMessage
     }

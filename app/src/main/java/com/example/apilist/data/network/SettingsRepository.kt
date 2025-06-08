@@ -2,7 +2,6 @@ package com.example.apilist.data.network
 
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.lifecycle.ViewModelProvider
 
 class SettingsRepository(context: Context) {
     private val sharedPreferences: SharedPreferences =
