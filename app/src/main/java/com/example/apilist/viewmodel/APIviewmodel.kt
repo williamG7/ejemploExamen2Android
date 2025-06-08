@@ -8,11 +8,13 @@ import androidx.lifecycle.viewModelScope
 import com.example.apilist.data.database.CharacterEntity
 import com.example.apilist.data.model.Character
 import com.example.apilist.data.network.Repository
+import com.example.apilist.data.network.SettingsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class APIviewmodel(private val repository1: Repository) : ViewModel() {
+class APIviewmodel(private val repository1: SettingsRepository) : ViewModel() {
+    val repository = Repository()
 
     // LiveData para el estado de carga
     private val _loading = MutableLiveData(true)
@@ -69,7 +71,7 @@ class APIviewmodel(private val repository1: Repository) : ViewModel() {
             try {
                 _loading.value = true
                 val response = withContext(Dispatchers.IO) {
-                    repository1.getAllCharacters()
+                    repository.getAllCharacters()
                 }
                 _characters.value = response
                 _loading.value = false
@@ -86,13 +88,13 @@ class APIviewmodel(private val repository1: Repository) : ViewModel() {
             try {
                 _loading.value = true
                 val character = withContext(Dispatchers.IO) {
-                    repository1.getCharacterByName(name)
+                    repository.getCharacterByName(name)
                 }
                 _characterDetail.value = character
 
                 character?.id?.let { id ->
                     val isFav = withContext(Dispatchers.IO) {
-                        repository1.isFavorite(id)
+                        repository.isFavorite(id)
                     }
                     _isFavorite.value = (isFav != null)
                 }
@@ -111,7 +113,7 @@ class APIviewmodel(private val repository1: Repository) : ViewModel() {
             try {
                 _loading.value = true
                 val favs = withContext(Dispatchers.IO) {
-                    repository1.getFavorites()
+                    repository.getFavorites()
                 }
                 _favorites.value = favs
                 _loading.value = false
@@ -136,12 +138,12 @@ class APIviewmodel(private val repository1: Repository) : ViewModel() {
 
                 if (_isFavorite.value == true) {
                     withContext(Dispatchers.IO) {
-                        repository1.deleteFavorite(characterEntity)
+                        repository.deleteFavorite(characterEntity)
                     }
                     toastMessage = "Eliminado de favoritos"
                 } else {
                     withContext(Dispatchers.IO) {
-                        repository1.saveAsFavorite(characterEntity)
+                        repository.saveAsFavorite(characterEntity)
                     }
                     toastMessage = "Añadido a favoritos"
                 }
@@ -162,7 +164,7 @@ class APIviewmodel(private val repository1: Repository) : ViewModel() {
         viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) {
-                    repository1.deleteAllFavorites()
+                    repository.deleteAllFavorites()
                 }
                 _favorites.value = emptyList()
             } catch (e: Exception) {
