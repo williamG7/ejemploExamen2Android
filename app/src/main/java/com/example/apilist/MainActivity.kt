@@ -59,8 +59,7 @@ fun MyApp() {
 
         val items = listOf(
             NavigationItem("Home", Icons.Default.Home, Destinations.Home, 0),
-            NavigationItem("Favorites", Icons.Default.Favorite, Destinations.Favorites, 1),
-            NavigationItem("Settings", Icons.Default.Settings, Destinations.Settings, 2)
+            NavigationItem("Favorites", Icons.Default.Favorite, Destinations.Favorites, 1)
         )
 
         val navController = rememberNavController()

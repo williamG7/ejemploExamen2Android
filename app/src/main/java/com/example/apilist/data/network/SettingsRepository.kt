@@ -4,10 +4,10 @@ import android.content.Context
 import android.content.SharedPreferences
 
 class SettingsRepository(context: Context) {
+
     private val sharedPreferences: SharedPreferences =
         context.getSharedPreferences("SettingsScreen", Context.MODE_PRIVATE)
 
-    // Generic methods for saving and retrieving settings
     fun <T> saveSettingValue(key: String, value: T) {
         with(sharedPreferences.edit()) {
             when (value) {

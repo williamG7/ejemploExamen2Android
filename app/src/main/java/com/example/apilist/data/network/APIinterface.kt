@@ -1,5 +1,6 @@
 package com.example.apilist.data.network
 
+import com.example.apilist.data.model.ApiResponse
 import com.example.apilist.data.model.Character
 import okhttp3.OkHttpClient
 import retrofit2.Response
@@ -11,7 +12,7 @@ import retrofit2.http.Path
 interface APIinterface {
 
     @GET("api/v1/characters")
-    suspend fun getAllCharacters(): Response<List<Character>>
+    suspend fun getAllCharacters():  Response<ApiResponse>
 
     @GET("api/v1/characters/name/{name}")
     suspend fun getCharacterByName(@Path("name") name: String): Response<Character>

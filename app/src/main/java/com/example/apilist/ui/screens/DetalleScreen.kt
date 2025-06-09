@@ -86,7 +86,7 @@ fun DetailScreen(navigateBack: () -> Unit, characterName: String ) {
 
             // Imagen del personaje
             Image(
-                painter = rememberAsyncImagePainter(character?.imageUrl),
+                painter = rememberAsyncImagePainter(character?.image),
                 contentDescription = "Imagen de ${character?.name}",
                 modifier = Modifier
                     .size(180.dp)

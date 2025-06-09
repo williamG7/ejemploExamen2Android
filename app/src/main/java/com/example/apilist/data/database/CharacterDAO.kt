@@ -5,7 +5,6 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 
-
 @Dao
 interface CharacterDAO {
 
@@ -13,7 +12,7 @@ interface CharacterDAO {
     suspend fun getAllCharacters(): MutableList<CharacterEntity>
 
     @Query("SELECT * FROM CharacterEntity WHERE id = :characterId")
-    suspend fun getCharacterById(characterId: Int): CharacterEntity?
+    suspend fun getCharacterById(characterId: kotlin.String): CharacterEntity?
 
     @Insert
     suspend fun addCharacter(character: CharacterEntity)

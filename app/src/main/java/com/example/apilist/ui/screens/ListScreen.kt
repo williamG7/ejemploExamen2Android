@@ -115,7 +115,7 @@ fun CharacterItem(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 AsyncImage(
-                    model = character.imageUrl,
+                    model = character.image,
                     contentDescription = "Imagen de ${character.name}",
                     modifier = Modifier
                         .size(80.dp)
@@ -142,7 +142,7 @@ fun CharacterItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 AsyncImage(
-                    model = character.imageUrl,
+                    model = character.image,
                     contentDescription = "Imagen de ${character.name}",
                     modifier = Modifier
                         .size(56.dp)

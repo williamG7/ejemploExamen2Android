@@ -133,7 +133,7 @@ class APIviewmodel(private val repository1: SettingsRepository) : ViewModel() {
                     id = character.id,
                     name = character.name,
                     description = character.description,
-                    imageUrl = character.imageUrl
+                    imageUrl = character.image
                 )
 
                 if (_isFavorite.value == true) {
